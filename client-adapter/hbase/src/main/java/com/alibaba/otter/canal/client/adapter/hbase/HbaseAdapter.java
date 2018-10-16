@@ -16,9 +16,7 @@ import com.alibaba.otter.canal.client.adapter.hbase.config.MappingConfigLoader;
 import com.alibaba.otter.canal.client.adapter.hbase.service.HbaseSyncService;
 import com.alibaba.otter.canal.client.adapter.support.CanalOuterAdapterConfiguration;
 import com.alibaba.otter.canal.client.adapter.support.Dml;
-import com.alibaba.otter.canal.client.adapter.support.MessageUtil;
 import com.alibaba.otter.canal.client.adapter.support.SPI;
-import com.alibaba.otter.canal.protocol.Message;
 
 /**
  * HBase外部适配器
@@ -44,8 +42,7 @@ public class HbaseAdapter implements CanalOuterAdapter {
                         mappingConfigCache = new HashMap<>();
                         for (MappingConfig mappingConfig : hbaseMapping.values()) {
                             mappingConfigCache.put(mappingConfig.getHbaseOrm().getDatabase() + "-"
-                                                   + mappingConfig.getHbaseOrm().getTable(),
-                                mappingConfig);
+                                                   + mappingConfig.getHbaseOrm().getTable(), mappingConfig);
                         }
                     }
                 }
@@ -86,20 +83,14 @@ public class HbaseAdapter implements CanalOuterAdapter {
     }
 
     @Override
-    public void writeOut(Message message) {
-        MessageUtil.parse4Dml(message, new MessageUtil.Consumer<Dml>() {
-
-            @Override
-            public void accept(Dml dml) {
-                if (dml == null) {
-                    return;
-                }
-                String database = dml.getDatabase();
-                String table = dml.getTable();
-                MappingConfig config = mappingConfigCache.get(database + "-" + table);
-                hbaseSyncService.sync(config, dml);
-            }
-        });
+    public void writeOut(Dml dml) {
+        if (dml == null) {
+            return;
+        }
+        String database = dml.getDatabase();
+        String table = dml.getTable();
+        MappingConfig config = mappingConfigCache.get(database + "-" + table);
+        hbaseSyncService.sync(config, dml);
     }
 
     @Override

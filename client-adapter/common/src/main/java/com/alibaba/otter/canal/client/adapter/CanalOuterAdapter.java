@@ -1,8 +1,8 @@
 package com.alibaba.otter.canal.client.adapter;
 
 import com.alibaba.otter.canal.client.adapter.support.CanalOuterAdapterConfiguration;
+import com.alibaba.otter.canal.client.adapter.support.Dml;
 import com.alibaba.otter.canal.client.adapter.support.SPI;
-import com.alibaba.otter.canal.protocol.Message;
 
 /**
  * 外部适配器接口
@@ -23,9 +23,11 @@ public interface CanalOuterAdapter {
     /**
      * 往适配器中写入数据
      *
-     * @param message message数据包
+     * @param dml 数据包
      */
-    void writeOut(Message message);
+    void writeOut(Dml dml);
+
+    // void writeOut(FlatMessage flatMessage);
 
     /**
      * 外部适配器销毁接口
