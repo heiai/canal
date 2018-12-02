@@ -1,30 +1,41 @@
 package com.alibaba.otter.canal.client.adapter.support;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 /**
  * 配置信息类
  *
- * @author machengyuan 2018-8-18 下午10:40:12
+ * @author rewerma 2018-8-18 下午10:40:12
  * @version 1.0.0
  */
 public class CanalClientConfig {
 
-    private String              canalServerHost;
+    // 单机模式下canal server的ip:port
+    private String             canalServerHost;
+    // 集群模式下的zk地址,如果配置了单机地址则以单机为准!!
+    private String             zookeeperHosts;
+    // kafka or rocket mq 地址
+    private String             mqServers;
+    // 是否已flatMessage模式传输,只适用于mq模式
+    private Boolean            flatMessage   = true;
+    // 批大小
+    private Integer            batchSize;
+    // 同步分批提交大小
+    private Integer            syncBatchSize = 1000;
+    // 重试次数
+    private Integer            retries;
+    // 消费超时时间
+    private Long               timeout;
+    // 模式 tcp kafka rocketMQ
+    private String             mode          = "tcp";
+    // aliyun ak/sk
+    private String             accessKey;
+    private String             secretKey;
 
-    private String              zookeeperHosts;
-
-    private Properties          properties;
-
-    private String              bootstrapServers;
-
-    private List<MQTopic>       mqTopics;
-
-    private Boolean             flatMessage = true;
-
-    private List<CanalInstance> canalInstances;
+    // canal adapters 配置
+    private List<CanalAdapter> canalAdapters;
 
     public String getCanalServerHost() {
         return canalServerHost;
@@ -42,24 +53,12 @@ public class CanalClientConfig {
         this.zookeeperHosts = zookeeperHosts;
     }
 
-    public Properties getProperties() {
-        return properties;
+    public String getMqServers() {
+        return mqServers;
     }
 
-    public void setProperties(Properties properties) {
-        this.properties = properties;
-    }
-
-    public String getBootstrapServers() {
-        return bootstrapServers;
-    }
-
-    public void setBootstrapServers(String bootstrapServers) {
-        this.bootstrapServers = bootstrapServers;
-    }
-
-    public List<MQTopic> getMqTopics() {
-        return mqTopics;
+    public void setMqServers(String mqServers) {
+        this.mqServers = mqServers;
     }
 
     public Boolean getFlatMessage() {
@@ -70,23 +69,75 @@ public class CanalClientConfig {
         this.flatMessage = flatMessage;
     }
 
-    public void setMqTopics(List<MQTopic> mqTopics) {
-        this.mqTopics = mqTopics;
+    public Integer getBatchSize() {
+        return batchSize;
     }
 
-    public List<CanalInstance> getCanalInstances() {
-        return canalInstances;
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
     }
 
-    public void setCanalInstances(List<CanalInstance> canalInstances) {
-        this.canalInstances = canalInstances;
+    public Integer getRetries() {
+        return retries;
     }
 
-    public static class CanalInstance {
+    public Integer getSyncBatchSize() {
+        return syncBatchSize;
+    }
 
-        private String             instance;
+    public void setSyncBatchSize(Integer syncBatchSize) {
+        this.syncBatchSize = syncBatchSize;
+    }
 
-        private List<AdapterGroup> adapterGroups;
+    public void setRetries(Integer retries) {
+        this.retries = retries;
+    }
+
+    public Long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Long timeout) {
+        this.timeout = timeout;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    public void setAccessKey(String accessKey) {
+        this.accessKey = accessKey;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public List<CanalAdapter> getCanalAdapters() {
+        return canalAdapters;
+    }
+
+    public void setCanalAdapters(List<CanalAdapter> canalAdapters) {
+        this.canalAdapters = canalAdapters;
+    }
+
+    public static class CanalAdapter {
+
+        private String      instance; // 实例名
+
+        private List<Group> groups;  // 适配器分组列表
 
         public String getInstance() {
             return instance;
@@ -96,52 +147,6 @@ public class CanalClientConfig {
             if (instance != null) {
                 this.instance = instance.trim();
             }
-        }
-
-        public List<AdapterGroup> getAdapterGroups() {
-            return adapterGroups;
-        }
-
-        public void setAdapterGroups(List<AdapterGroup> adapterGroups) {
-            this.adapterGroups = adapterGroups;
-        }
-    }
-
-    public static class AdapterGroup {
-
-        private List<CanalOuterAdapterConfiguration> outAdapters;
-
-        public List<CanalOuterAdapterConfiguration> getOutAdapters() {
-            return outAdapters;
-        }
-
-        public void setOutAdapters(List<CanalOuterAdapterConfiguration> outAdapters) {
-            this.outAdapters = outAdapters;
-        }
-    }
-
-    public static class MQTopic {
-
-        private String      mqMode;
-
-        private String      topic;
-
-        private List<Group> groups = new ArrayList<>();
-
-        public String getMqMode() {
-            return mqMode;
-        }
-
-        public void setMqMode(String mqMode) {
-            this.mqMode = mqMode;
-        }
-
-        public String getTopic() {
-            return topic;
-        }
-
-        public void setTopic(String topic) {
-            this.topic = topic;
         }
 
         public List<Group> getGroups() {
@@ -155,11 +160,10 @@ public class CanalClientConfig {
 
     public static class Group {
 
-        private String                               groupId;
-
-        // private List<Adaptor> adapters = new ArrayList<>();
-
-        private List<CanalOuterAdapterConfiguration> outAdapters;
+        // group id
+        private String                          groupId          = "default";
+        private List<OuterAdapterConfig>        outerAdapters;                           // 适配器列表
+        private Map<String, OuterAdapterConfig> outerAdaptersMap = new LinkedHashMap<>();
 
         public String getGroupId() {
             return groupId;
@@ -169,14 +173,20 @@ public class CanalClientConfig {
             this.groupId = groupId;
         }
 
-        public List<CanalOuterAdapterConfiguration> getOutAdapters() {
-            return outAdapters;
+        public List<OuterAdapterConfig> getOuterAdapters() {
+            return outerAdapters;
         }
 
-        public void setOutAdapters(List<CanalOuterAdapterConfiguration> outAdapters) {
-            this.outAdapters = outAdapters;
+        public void setOuterAdapters(List<OuterAdapterConfig> outerAdapters) {
+            this.outerAdapters = outerAdapters;
         }
 
+        public Map<String, OuterAdapterConfig> getOuterAdaptersMap() {
+            return outerAdaptersMap;
+        }
+
+        public void setOuterAdaptersMap(Map<String, OuterAdapterConfig> outerAdaptersMap) {
+            this.outerAdaptersMap = outerAdaptersMap;
+        }
     }
-
 }

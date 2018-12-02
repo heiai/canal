@@ -58,6 +58,11 @@ public class MemoryTableMeta implements TableMetaTSDB {
     public boolean init(String destination) {
         return true;
     }
+    
+    @Override
+    public void destory() {
+        tableMetas.clear();
+    }
 
     public boolean apply(EntryPosition position, String schema, String ddl, String extra) {
         tableMetas.clear();
@@ -208,6 +213,7 @@ public class MemoryTableMeta implements TableMetaTSDB {
                     fieldMeta.setNullable(true);
                 } else if (constraint instanceof SQLColumnPrimaryKey) {
                     fieldMeta.setKey(true);
+                    fieldMeta.setNullable(false);
                 } else if (constraint instanceof SQLColumnUniqueKey) {
                     fieldMeta.setUnique(true);
                 }
@@ -220,6 +226,7 @@ public class MemoryTableMeta implements TableMetaTSDB {
                 String name = getSqlName(pk.getExpr());
                 FieldMeta field = tableMeta.getFieldMetaByName(name);
                 field.setKey(true);
+                field.setNullable(false);
             }
         } else if (element instanceof MySqlUnique) {
             MySqlUnique column = (MySqlUnique) element;

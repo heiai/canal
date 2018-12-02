@@ -149,11 +149,19 @@ public class FlatMessage implements Serializable {
             }
 
             List<FlatMessage> flatMessages = new ArrayList<>();
+            List<CanalEntry.Entry> entrys = null;
+            if (message.isRaw()) {
+                List<ByteString> rawEntries = message.getRawEntries();
+                entrys = new ArrayList<CanalEntry.Entry>(rawEntries.size());
+                for (ByteString byteString : rawEntries) {
+                    CanalEntry.Entry entry = CanalEntry.Entry.parseFrom(byteString);
+                    entrys.add(entry);
+                }
+            } else {
+                entrys = message.getEntries();
+            }
 
-            List<ByteString> rawEntries = message.getRawEntries();
-
-            for (ByteString byteString : rawEntries) {
-                CanalEntry.Entry entry = CanalEntry.Entry.parseFrom(byteString);
+            for (CanalEntry.Entry entry : entrys) {
                 if (entry.getEntryType() == CanalEntry.EntryType.TRANSACTIONBEGIN
                     || entry.getEntryType() == CanalEntry.EntryType.TRANSACTIONEND) {
                     continue;
@@ -163,8 +171,9 @@ public class FlatMessage implements Serializable {
                 try {
                     rowChange = CanalEntry.RowChange.parseFrom(entry.getStoreValue());
                 } catch (Exception e) {
-                    throw new RuntimeException("ERROR ## parser of eromanga-event has an error , data:"
-                                               + entry.toString(), e);
+                    throw new RuntimeException(
+                        "ERROR ## parser of eromanga-event has an error , data:" + entry.toString(),
+                        e);
                 }
 
                 CanalEntry.EventType eventType = rowChange.getEventType();
@@ -204,7 +213,11 @@ public class FlatMessage implements Serializable {
                         for (CanalEntry.Column column : columns) {
                             sqlType.put(column.getName(), column.getSqlType());
                             mysqlType.put(column.getName(), column.getMysqlType());
-                            row.put(column.getName(), column.getValue());
+                            if (column.getIsNull()) {
+                                row.put(column.getName(), null);
+                            } else {
+                                row.put(column.getName(), column.getValue());
+                            }
                             // 获取update为true的字段
                             if (column.getUpdated()) {
                                 updateSet.add(column.getName());
@@ -218,7 +231,11 @@ public class FlatMessage implements Serializable {
                             Map<String, String> rowOld = new LinkedHashMap<>();
                             for (CanalEntry.Column column : rowData.getBeforeColumnsList()) {
                                 if (updateSet.contains(column.getName())) {
-                                    rowOld.put(column.getName(), column.getValue());
+                                    if (column.getIsNull()) {
+                                        rowOld.put(column.getName(), null);
+                                    } else {
+                                        rowOld.put(column.getName(), column.getValue());
+                                    }
                                 }
                             }
                             // update操作将记录修改前的值
@@ -261,7 +278,6 @@ public class FlatMessage implements Serializable {
             partitionsNum = 1;
         }
         FlatMessage[] partitionMessages = new FlatMessage[partitionsNum];
-
         String pk = pkHashConfig.get(flatMessage.getDatabase() + "." + flatMessage.getTable());
         if (pk == null || flatMessage.getIsDdl()) {
             partitionMessages[0] = flatMessage;
@@ -269,7 +285,17 @@ public class FlatMessage implements Serializable {
             if (flatMessage.getData() != null) {
                 int idx = 0;
                 for (Map<String, String> row : flatMessage.getData()) {
-                    String value = row.get(pk);
+                    Map<String, String> o = null;
+                    if (flatMessage.getOld() != null) {
+                        o = flatMessage.getOld().get(idx);
+                    }
+                    String value;
+                    // 如果old中有pk值说明主键有修改, 以旧的主键值hash为准
+                    if (o != null && o.containsKey(pk)) {
+                        value = o.get(pk);
+                    } else {
+                        value = row.get(pk);
+                    }
                     if (value == null) {
                         value = "";
                     }

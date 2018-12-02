@@ -1,23 +1,21 @@
 package com.alibaba.otter.canal.kafka;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Future;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.otter.canal.common.MQProperties;
 import com.alibaba.otter.canal.protocol.FlatMessage;
 import com.alibaba.otter.canal.protocol.Message;
-import com.alibaba.otter.canal.spi.CanalMQProducer;;
+import com.alibaba.otter.canal.spi.CanalMQProducer;
 
 /**
  * kafka producer 主操作类
@@ -40,10 +38,12 @@ public class CanalKafkaProducer implements CanalMQProducer {
         this.kafkaProperties = kafkaProperties;
         Properties properties = new Properties();
         properties.put("bootstrap.servers", kafkaProperties.getServers());
-        properties.put("acks", "all");
+        properties.put("acks", kafkaProperties.getAcks());
+        properties.put("compression.type", kafkaProperties.getCompressionType());
         properties.put("retries", kafkaProperties.getRetries());
         properties.put("batch.size", kafkaProperties.getBatchSize());
         properties.put("linger.ms", kafkaProperties.getLingerMs());
+        properties.put("max.request.size", kafkaProperties.getMaxRequestSize());
         properties.put("buffer.memory", kafkaProperties.getBufferMemory());
         properties.put("key.serializer", StringSerializer.class.getName());
         if (!kafkaProperties.getFlatMessage()) {
@@ -91,10 +91,17 @@ public class CanalKafkaProducer implements CanalMQProducer {
                 }
 
                 producer.send(record).get();
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Send  message to kafka topic: [{}], packet: {}",
+                        canalDestination.getTopic(),
+                        message.toString());
+                }
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
                 // producer.abortTransaction();
                 callback.rollback();
+                return;
             }
         } else {
             // 发送扁平数据json
@@ -103,13 +110,17 @@ public class CanalKafkaProducer implements CanalMQProducer {
                 for (FlatMessage flatMessage : flatMessages) {
                     if (canalDestination.getPartition() != null) {
                         try {
-                            ProducerRecord<String, String> record = new ProducerRecord<String, String>(canalDestination
-                                .getTopic(), canalDestination.getPartition(), null, JSON.toJSONString(flatMessage));
-                            producer2.send(record);
+                            ProducerRecord<String, String> record = new ProducerRecord<String, String>(
+                                canalDestination.getTopic(),
+                                canalDestination.getPartition(),
+                                null,
+                                JSON.toJSONString(flatMessage, SerializerFeature.WriteMapNullValue));
+                            producer2.send(record).get();
                         } catch (Exception e) {
                             logger.error(e.getMessage(), e);
                             // producer.abortTransaction();
                             callback.rollback();
+                            return;
                         }
                     } else {
                         if (canalDestination.getPartitionHash() != null
@@ -126,12 +137,13 @@ public class CanalKafkaProducer implements CanalMQProducer {
                                             canalDestination.getTopic(),
                                             i,
                                             null,
-                                            JSON.toJSONString(flatMessagePart));
+                                            JSON.toJSONString(flatMessagePart, SerializerFeature.WriteMapNullValue));
                                         producer2.send(record).get();
                                     } catch (Exception e) {
                                         logger.error(e.getMessage(), e);
                                         // producer.abortTransaction();
                                         callback.rollback();
+                                        return;
                                     }
                                 }
                             }
@@ -141,14 +153,20 @@ public class CanalKafkaProducer implements CanalMQProducer {
                                     canalDestination.getTopic(),
                                     0,
                                     null,
-                                    JSON.toJSONString(flatMessage));
+                                    JSON.toJSONString(flatMessage, SerializerFeature.WriteMapNullValue));
                                 producer2.send(record).get();
                             } catch (Exception e) {
                                 logger.error(e.getMessage(), e);
                                 // producer.abortTransaction();
                                 callback.rollback();
+                                return;
                             }
                         }
+                    }
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Send flat message to kafka topic: [{}], packet: {}",
+                            canalDestination.getTopic(),
+                            JSON.toJSONString(flatMessage, SerializerFeature.WriteMapNullValue));
                     }
                 }
             }
@@ -156,9 +174,6 @@ public class CanalKafkaProducer implements CanalMQProducer {
 
         // producer.commitTransaction();
         callback.commit();
-        if (logger.isDebugEnabled()) {
-            logger.debug("send message to kafka topic: {}", canalDestination.getTopic());
-        }
 
     }
 
