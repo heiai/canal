@@ -119,6 +119,7 @@ public class CanalController {
             embededCanalServer.setMetricsPort(11112);
         }
 
+        // canalServer netty 服务端，用于与 canal 客户端交互
         String canalWithoutNetty = getProperty(properties, CanalConstants.CANAL_WITHOUT_NETTY);
         if (canalWithoutNetty == null || "false".equals(canalWithoutNetty)) {
             canalServer = CanalServerWithNetty.instance();
@@ -218,6 +219,7 @@ public class CanalController {
         // 初始化monitor机制
         autoScan = BooleanUtils.toBoolean(getProperty(properties, CanalConstants.CANAL_AUTO_SCAN));
         if (autoScan) {
+            // 配置变化时的操作
             defaultAction = new InstanceAction() {
 
                 public void start(String destination) {
@@ -262,6 +264,7 @@ public class CanalController {
                 }
             };
 
+            // 定时扫描conf.dir下instance配置，启动或停止 instance。
             instanceConfigMonitors = MigrateMap.makeComputingMap(new Function<InstanceMode, InstanceConfigMonitor>() {
 
                 public InstanceConfigMonitor apply(InstanceMode mode) {
@@ -452,6 +455,7 @@ public class CanalController {
             if (!embededCanalServer.isStart(destination)) {
                 // HA机制启动
                 ServerRunningMonitor runningMonitor = ServerRunningMonitors.getRunningMonitor(destination);
+                // 如果是延时启动，在canalServer收到客户端订阅的消息时会调用runningMonitor.start()方法
                 if (!config.getLazy() && !runningMonitor.isStart()) {
                     runningMonitor.start();
                 }
