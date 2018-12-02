@@ -14,17 +14,17 @@ import com.alibaba.otter.canal.protocol.Message;
 /**
  * Message对象解析工具类
  *
- * @author machengyuan 2018-8-19 下午06:14:23
+ * @author rewerma 2018-8-19 下午06:14:23
  * @version 1.0.0
  */
 public class MessageUtil {
 
-    public static void parse4Dml(Message message, Consumer<Dml> consumer) {
+    public static List<Dml> parse4Dml(String destination, Message message) {
         if (message == null) {
-            return;
+            return null;
         }
         List<CanalEntry.Entry> entries = message.getEntries();
-
+        List<Dml> dmls = new ArrayList<Dml>(entries.size());
         for (CanalEntry.Entry entry : entries) {
             if (entry.getEntryType() == CanalEntry.EntryType.TRANSACTIONBEGIN
                 || entry.getEntryType() == CanalEntry.EntryType.TRANSACTIONEND) {
@@ -42,12 +42,14 @@ public class MessageUtil {
             CanalEntry.EventType eventType = rowChange.getEventType();
 
             final Dml dml = new Dml();
+            dml.setDestination(destination);
             dml.setDatabase(entry.getHeader().getSchemaName());
             dml.setTable(entry.getHeader().getTableName());
             dml.setType(eventType.toString());
             dml.setEs(entry.getHeader().getExecuteTime());
             dml.setTs(System.currentTimeMillis());
             dml.setSql(rowChange.getSql());
+            dmls.add(dml);
             List<Map<String, Object>> data = new ArrayList<>();
             List<Map<String, Object>> old = new ArrayList<>();
 
@@ -87,10 +89,11 @@ public class MessageUtil {
                         Map<String, Object> rowOld = new LinkedHashMap<>();
                         for (CanalEntry.Column column : rowData.getBeforeColumnsList()) {
                             if (updateSet.contains(column.getName())) {
-                                rowOld.put(column.getName(), JdbcTypeUtil.typeConvert(column.getName(),
-                                    column.getValue(),
-                                    column.getSqlType(),
-                                    column.getMysqlType()));
+                                rowOld.put(column.getName(),
+                                    JdbcTypeUtil.typeConvert(column.getName(),
+                                        column.getValue(),
+                                        column.getSqlType(),
+                                        column.getMysqlType()));
                             }
                         }
                         // update操作将记录修改前的值
@@ -105,16 +108,30 @@ public class MessageUtil {
                 if (!old.isEmpty()) {
                     dml.setOld(old);
                 }
-                consumer.accept(dml);
             }
         }
+
+        return dmls;
     }
 
-    public static Dml flatMessage2Dml(FlatMessage flatMessage) {
+    public static List<Dml> flatMessage2Dml(String destination, List<FlatMessage> flatMessages) {
+        List<Dml> dmls = new ArrayList<Dml>(flatMessages.size());
+        for (FlatMessage flatMessage : flatMessages) {
+            Dml dml = flatMessage2Dml(destination, flatMessage);
+            if (dml != null) {
+                dmls.add(dml);
+            }
+        }
+
+        return dmls;
+    }
+
+    public static Dml flatMessage2Dml(String destination, FlatMessage flatMessage) {
         if (flatMessage == null) {
             return null;
         }
         Dml dml = new Dml();
+        dml.setDestination(destination);
         dml.setDatabase(flatMessage.getDatabase());
         dml.setTable(flatMessage.getTable());
         dml.setType(flatMessage.getType());
@@ -160,10 +177,5 @@ public class MessageUtil {
             result.add(resultRow);
         }
         return result;
-    }
-
-    public interface Consumer<T> {
-
-        void accept(T t);
     }
 }

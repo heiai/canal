@@ -1,7 +1,5 @@
 package com.alibaba.otter.canal.common;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,18 +10,21 @@ import java.util.Map;
  */
 public class MQProperties {
 
-    private String                 servers                = "localhost:6667";
-    private int                    retries                = 0;
-    private int                    batchSize              = 16384;
-    private int                    lingerMs               = 1;
-    private long                   bufferMemory           = 33554432L;
-    private boolean                filterTransactionEntry = true;
-    private String                 producerGroup          = "Canal-Producer";
-    private int                    canalBatchSize         = 50;
-    private Long                   canalGetTimeout;
-    private boolean                flatMessage            = true;
-
-    private List<CanalDestination> canalDestinations      = new ArrayList<CanalDestination>();
+    private String  servers                = "127.0.0.1:6667";
+    private int     retries                = 0;
+    private int     batchSize              = 16384;
+    private int     lingerMs               = 1;
+    private int     maxRequestSize         = 1048576;
+    private long    bufferMemory           = 33554432L;
+    private boolean filterTransactionEntry = true;
+    private String  producerGroup          = "Canal-Producer";
+    private int     canalBatchSize         = 50;
+    private Long    canalGetTimeout        = 100L;
+    private boolean flatMessage            = true;
+    private String  compressionType        = "none";
+    private String  acks                   = "all";
+    private String  aliyunAccessKey        = "";
+    private String  aliyunSecretKey        = "";
 
     public static class CanalDestination {
 
@@ -138,14 +139,6 @@ public class MQProperties {
         this.flatMessage = flatMessage;
     }
 
-    public List<CanalDestination> getCanalDestinations() {
-        return canalDestinations;
-    }
-
-    public void setCanalDestinations(List<CanalDestination> canalDestinations) {
-        this.canalDestinations = canalDestinations;
-    }
-
     public boolean isFilterTransactionEntry() {
         return filterTransactionEntry;
     }
@@ -160,5 +153,44 @@ public class MQProperties {
 
     public void setProducerGroup(String producerGroup) {
         this.producerGroup = producerGroup;
+    }
+
+    public String getCompressionType() {
+        return compressionType;
+    }
+
+    public void setCompressionType(String compressionType) {
+        this.compressionType = compressionType;
+    }
+
+    public String getAcks() {
+        return acks;
+    }
+
+    public void setAcks(String acks) {
+        this.acks = acks;
+    }
+
+    public String getAliyunAccessKey() {
+        return aliyunAccessKey;
+    }
+
+    public void setAliyunAccessKey(String aliyunAccessKey) {
+        this.aliyunAccessKey = aliyunAccessKey;
+    }
+
+    public String getAliyunSecretKey() {
+        return aliyunSecretKey;
+    }
+
+    public void setAliyunSecretKey(String aliyunSecretKey) {
+        this.aliyunSecretKey = aliyunSecretKey;
+    }
+    public int getMaxRequestSize() {
+        return maxRequestSize;
+    }
+
+    public void setMaxRequestSize(int maxRequestSize) {
+        this.maxRequestSize = maxRequestSize;
     }
 }

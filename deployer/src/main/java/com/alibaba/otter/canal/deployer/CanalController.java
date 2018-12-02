@@ -35,6 +35,7 @@ import com.alibaba.otter.canal.instance.manager.CanalConfigClient;
 import com.alibaba.otter.canal.instance.manager.ManagerCanalInstanceGenerator;
 import com.alibaba.otter.canal.instance.spring.SpringCanalInstanceGenerator;
 import com.alibaba.otter.canal.parse.CanalEventParser;
+import com.alibaba.otter.canal.server.CanalMQStarter;
 import com.alibaba.otter.canal.server.embedded.CanalServerWithEmbedded;
 import com.alibaba.otter.canal.server.exception.CanalServerException;
 import com.alibaba.otter.canal.server.netty.CanalServerWithNetty;
@@ -68,6 +69,8 @@ public class CanalController {
     private CanalInstanceGenerator                   instanceGenerator;
     private ZkClientx                                zkclientx;
 
+    private CanalMQStarter                           canalMQStarter;
+
     public CanalController(){
         this(System.getProperties());
     }
@@ -92,6 +95,16 @@ public class CanalController {
             System.setProperty(CanalConstants.CANAL_SOCKETCHANNEL, socketChannel);
         }
 
+        // 兼容1.1.0版本的ak/sk参数名
+        String accesskey = getProperty(properties, "canal.instance.rds.accesskey");
+        String secretkey = getProperty(properties, "canal.instance.rds.secretkey");
+        if (StringUtils.isNotEmpty(accesskey)) {
+            System.setProperty(CanalConstants.CANAL_ALIYUN_ACCESSKEY, accesskey);
+        }
+        if (StringUtils.isNotEmpty(secretkey)) {
+            System.setProperty(CanalConstants.CANAL_ALIYUN_SECRETKEY, secretkey);
+        }
+
         // 准备canal server
         cid = Long.valueOf(getProperty(properties, CanalConstants.CANAL_ID));
         ip = getProperty(properties, CanalConstants.CANAL_IP);
@@ -105,7 +118,7 @@ public class CanalController {
             logger.info("No valid metrics server port found, use default 11112.");
             embededCanalServer.setMetricsPort(11112);
         }
-        
+
         String canalWithoutNetty = getProperty(properties, CanalConstants.CANAL_WITHOUT_NETTY);
         if (canalWithoutNetty == null || "false".equals(canalWithoutNetty)) {
             canalServer = CanalServerWithNetty.instance();
@@ -220,6 +233,9 @@ public class CanalController {
                         ServerRunningMonitor runningMonitor = ServerRunningMonitors.getRunningMonitor(destination);
                         if (!config.getLazy() && !runningMonitor.isStart()) {
                             runningMonitor.start();
+                            if (canalMQStarter != null) {
+                                canalMQStarter.startDestination(destination);
+                            }
                         }
                     }
                 }
@@ -228,6 +244,9 @@ public class CanalController {
                     // 此处的stop，代表强制退出，非HA机制，所以需要退出HA的monitor和配置信息
                     InstanceConfig config = instanceConfigs.remove(destination);
                     if (config != null) {
+                        if (canalMQStarter != null) {
+                            canalMQStarter.stopDestination(destination);
+                        }
                         embededCanalServer.stop(destination);
                         ServerRunningMonitor runningMonitor = ServerRunningMonitors.getRunningMonitor(destination);
                         if (runningMonitor.isStart()) {
@@ -354,8 +373,7 @@ public class CanalController {
             InstanceConfig oldConfig = instanceConfigs.put(destination, config);
 
             if (oldConfig != null) {
-                logger.warn("destination:{} old config:{} has replace by new config:{}", new Object[] { destination,
-                        oldConfig, config });
+                logger.warn("destination:{} old config:{} has replace by new config:{}", destination, oldConfig, config);
             }
         }
     }
@@ -387,7 +405,7 @@ public class CanalController {
         return config;
     }
 
-    public String getProperty(Properties properties, String key) {
+    public static String getProperty(Properties properties, String key) {
         key = StringUtils.trim(key);
         String value = System.getProperty(key);
 
@@ -514,4 +532,11 @@ public class CanalController {
         }
     }
 
+    public CanalMQStarter getCanalMQStarter() {
+        return canalMQStarter;
+    }
+
+    public void setCanalMQStarter(CanalMQStarter canalMQStarter) {
+        this.canalMQStarter = canalMQStarter;
+    }
 }
