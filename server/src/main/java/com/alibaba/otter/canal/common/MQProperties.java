@@ -1,5 +1,7 @@
 package com.alibaba.otter.canal.common;
 
+import java.util.Properties;
+
 /**
  * kafka 配置项
  *
@@ -8,21 +10,23 @@ package com.alibaba.otter.canal.common;
  */
 public class MQProperties {
 
-    private String  servers                = "127.0.0.1:6667";
-    private int     retries                = 0;
-    private int     batchSize              = 16384;
-    private int     lingerMs               = 1;
-    private int     maxRequestSize         = 1048576;
-    private long    bufferMemory           = 33554432L;
-    private boolean filterTransactionEntry = true;
-    private String  producerGroup          = "Canal-Producer";
-    private int     canalBatchSize         = 50;
-    private Long    canalGetTimeout        = 100L;
-    private boolean flatMessage            = true;
-    private String  compressionType        = "none";
-    private String  acks                   = "all";
-    private String  aliyunAccessKey        = "";
-    private String  aliyunSecretKey        = "";
+    private String     servers                = "127.0.0.1:6667";
+    private int        retries                = 0;
+    private int        batchSize              = 16384;
+    private int        lingerMs               = 1;
+    private int        maxRequestSize         = 1048576;
+    private long       bufferMemory           = 33554432L;
+    private boolean    filterTransactionEntry = true;
+    private String     producerGroup          = "Canal-Producer";
+    private int        canalBatchSize         = 50;
+    private Long       canalGetTimeout        = 100L;
+    private boolean    flatMessage            = true;
+    private String     compressionType        = "none";
+    private String     acks                   = "all";
+    private String     aliyunAccessKey        = "";
+    private String     aliyunSecretKey        = "";
+    private boolean    transaction            = false;           // 是否开启事务
+    private Properties properties             = new Properties();
 
     public static class CanalDestination {
 
@@ -200,5 +204,21 @@ public class MQProperties {
 
     public void setMaxRequestSize(int maxRequestSize) {
         this.maxRequestSize = maxRequestSize;
+    }
+
+    public boolean getTransaction() {
+        return transaction;
+    }
+
+    public void setTransaction(boolean transaction) {
+        this.transaction = transaction;
+    }
+
+    public Properties getProperties() {
+        return properties;
+    }
+
+    public void setProperties(Properties properties) {
+        this.properties = properties;
     }
 }

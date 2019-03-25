@@ -1,6 +1,7 @@
 package com.alibaba.otter.canal.client.kafka;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -31,7 +32,7 @@ import com.google.common.collect.Lists;
 public class KafkaCanalConnector implements CanalMQConnector {
 
     protected KafkaConsumer<String, Message> kafkaConsumer;
-    protected KafkaConsumer<String, String>  kafkaConsumer2;                  // 用于扁平message的数据消费
+    protected KafkaConsumer<String, String>  kafkaConsumer2;                            // 用于扁平message的数据消费
     protected String                         topic;
     protected Integer                        partition;
     protected Properties                     properties;
@@ -39,7 +40,7 @@ public class KafkaCanalConnector implements CanalMQConnector {
     protected volatile boolean               running        = false;
     protected boolean                        flatMessage;
 
-    private Map<Integer, Long>               currentOffsets = new HashMap<>();
+    private Map<Integer, Long>               currentOffsets = new ConcurrentHashMap<>();
 
     public KafkaCanalConnector(String servers, String topic, Integer partition, String groupId, Integer batchSize,
                                boolean flatMessage){
@@ -55,6 +56,7 @@ public class KafkaCanalConnector implements CanalMQConnector {
         properties.put("auto.offset.reset", "latest"); // 如果没有offset则从最后的offset开始读
         properties.put("request.timeout.ms", "40000"); // 必须大于session.timeout.ms的设置
         properties.put("session.timeout.ms", "30000"); // 默认为30秒
+        properties.put("isolation.level", "read_committed");
         if (batchSize == null) {
             batchSize = 100;
         }
