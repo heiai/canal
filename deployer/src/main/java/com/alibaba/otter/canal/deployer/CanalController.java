@@ -141,6 +141,8 @@ public class CanalController {
 
         final ServerRunningData serverData = new ServerRunningData(cid, ip + ":" + port);
         ServerRunningMonitors.setServerData(serverData);
+
+        // 通过ServerRunningMonitors.getRunningMonitor(destination).start()方法启动对应的 destination 的 instance。
         ServerRunningMonitors.setRunningMonitors(MigrateMap.makeComputingMap(new Function<String, ServerRunningMonitor>() {
 
             public ServerRunningMonitor apply(final String destination) {
