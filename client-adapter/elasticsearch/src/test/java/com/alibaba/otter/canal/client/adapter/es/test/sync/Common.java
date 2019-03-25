@@ -22,11 +22,11 @@ public class Common {
         outerAdapterConfig.setName("es");
         outerAdapterConfig.setHosts(TestConstant.esHosts);
         Map<String, String> properties = new HashMap<>();
-        properties.put("cluster.name", TestConstant.clusterNmae);
+        properties.put("cluster.name", TestConstant.clusterName);
         outerAdapterConfig.setProperties(properties);
 
         ESAdapter esAdapter = new ESAdapter();
-        esAdapter.init(outerAdapterConfig);
+        esAdapter.init(outerAdapterConfig, null);
         return esAdapter;
     }
 

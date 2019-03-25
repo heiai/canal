@@ -9,10 +9,7 @@ import java.util.stream.Collectors;
 
 import com.alibaba.fastsql.sql.SQLUtils;
 import com.alibaba.fastsql.sql.ast.SQLExpr;
-import com.alibaba.fastsql.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.fastsql.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.fastsql.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.fastsql.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.fastsql.sql.ast.expr.*;
 import com.alibaba.fastsql.sql.ast.statement.*;
 import com.alibaba.fastsql.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.fastsql.sql.dialect.mysql.parser.MySqlStatementParser;
@@ -25,7 +22,7 @@ import com.alibaba.otter.canal.client.adapter.es.config.SchemaItem.TableItem;
 
 /**
  * ES同步指定sql格式解析
- * 
+ *
  * @author rewerma 2018-10-26 下午03:45:49
  * @version 1.0.0
  */
@@ -33,7 +30,7 @@ public class SqlParser {
 
     /**
      * 解析sql
-     * 
+     *
      * @param sql sql
      * @return 视图对象
      */
@@ -66,7 +63,7 @@ public class SqlParser {
 
     /**
      * 归集字段
-     * 
+     *
      * @param sqlSelectQueryBlock sqlSelectQueryBlock
      * @return 字段属性列表
      */
@@ -74,6 +71,7 @@ public class SqlParser {
         return sqlSelectQueryBlock.getSelectList().stream().map(selectItem -> {
             FieldItem fieldItem = new FieldItem();
             fieldItem.setFieldName(selectItem.getAlias());
+            fieldItem.setExpr(selectItem.toString());
             visitColumn(selectItem.getExpr(), fieldItem);
             return fieldItem;
         }).collect(Collectors.toList());
@@ -81,7 +79,7 @@ public class SqlParser {
 
     /**
      * 解析字段
-     * 
+     *
      * @param expr sql expr
      * @param fieldItem 字段属性
      */
@@ -91,6 +89,7 @@ public class SqlParser {
             SQLIdentifierExpr identifierExpr = (SQLIdentifierExpr) expr;
             if (fieldItem.getFieldName() == null) {
                 fieldItem.setFieldName(identifierExpr.getName());
+                fieldItem.setExpr(identifierExpr.toString());
             }
             ColumnItem columnItem = new ColumnItem();
             columnItem.setColumnName(identifierExpr.getName());
@@ -101,6 +100,7 @@ public class SqlParser {
             SQLPropertyExpr sqlPropertyExpr = (SQLPropertyExpr) expr;
             if (fieldItem.getFieldName() == null) {
                 fieldItem.setFieldName(sqlPropertyExpr.getName());
+                fieldItem.setExpr(sqlPropertyExpr.toString());
             }
             fieldItem.getOwners().add(sqlPropertyExpr.getOwnernName());
             ColumnItem columnItem = new ColumnItem();
@@ -118,12 +118,16 @@ public class SqlParser {
             fieldItem.setBinaryOp(true);
             visitColumn(sqlBinaryOpExpr.getLeft(), fieldItem);
             visitColumn(sqlBinaryOpExpr.getRight(), fieldItem);
+        } else if (expr instanceof SQLCaseExpr) {
+            SQLCaseExpr sqlCaseExpr = (SQLCaseExpr) expr;
+            fieldItem.setMethod(true);
+            sqlCaseExpr.getItems().forEach(item-> visitColumn(item.getConditionExpr(), fieldItem));
         }
     }
 
     /**
      * 解析表
-     * 
+     *
      * @param schemaItem 视图对象
      * @param sqlTableSource sqlTableSource
      * @param tableItems 表对象列表
@@ -178,7 +182,7 @@ public class SqlParser {
 
     /**
      * 解析on条件
-     * 
+     *
      * @param expr sql expr
      * @param tableItem 表对象
      */

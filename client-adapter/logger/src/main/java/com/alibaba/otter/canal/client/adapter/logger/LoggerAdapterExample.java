@@ -1,9 +1,11 @@
 package com.alibaba.otter.canal.client.adapter.logger;
 
 import java.util.List;
+import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -25,8 +27,8 @@ public class LoggerAdapterExample implements OuterAdapter {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void init(OuterAdapterConfig configuration) {
-
+    public void init(OuterAdapterConfig configuration, Properties envProperties) {
+        MDC.put("adapter", "logger");
     }
 
     public void sync(List<Dml> dmls) {
@@ -41,6 +43,6 @@ public class LoggerAdapterExample implements OuterAdapter {
 
     @Override
     public void destroy() {
-
+        MDC.remove("adapter");
     }
 }

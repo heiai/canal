@@ -57,6 +57,11 @@ public class SchemaItem {
         this.selectFields = selectFields;
     }
 
+    public String toSql() {
+        // todo
+        return null;
+    }
+
     public Map<String, List<TableItem>> getTableItemAliases() {
         if (tableItemAliases == null) {
             synchronized (SchemaItem.class) {
@@ -80,7 +85,7 @@ public class SchemaItem {
                     columnFields = new LinkedHashMap<>();
                     getSelectFields()
                         .forEach((fieldName, fieldItem) -> fieldItem.getColumnItems().forEach(columnItem -> {
-                            TableItem tableItem = getAliasTableItems().get(columnItem.getOwner());
+                            // TableItem tableItem = getAliasTableItems().get(columnItem.getOwner());
                             // if (!tableItem.isSubQuery()) {
                             List<FieldItem> fieldItems = columnFields.computeIfAbsent(
                                 columnItem.getOwner() + "." + columnItem.getColumnName(),
@@ -273,12 +278,13 @@ public class SchemaItem {
             if (relationSelectFieldItems == null) {
                 synchronized (SchemaItem.class) {
                     if (relationSelectFieldItems == null) {
-                        relationSelectFieldItems = new ArrayList<>();
+                        List<FieldItem> relationSelectFieldItemsTmp = new ArrayList<>();
                         for (FieldItem fieldItem : schemaItem.getSelectFields().values()) {
                             if (fieldItem.getOwners().contains(getAlias())) {
-                                relationSelectFieldItems.add(fieldItem);
+                                relationSelectFieldItemsTmp.add(fieldItem);
                             }
                         }
+                        relationSelectFieldItems = relationSelectFieldItemsTmp;
                     }
                 }
             }
@@ -316,6 +322,7 @@ public class SchemaItem {
     public static class FieldItem {
 
         private String           fieldName;
+        private String           expr;
         private List<ColumnItem> columnItems = new ArrayList<>();
         private List<String>     owners      = new ArrayList<>();
 
@@ -328,6 +335,14 @@ public class SchemaItem {
 
         public void setFieldName(String fieldName) {
             this.fieldName = fieldName;
+        }
+
+        public String getExpr() {
+            return expr;
+        }
+
+        public void setExpr(String expr) {
+            this.expr = expr;
         }
 
         public List<ColumnItem> getColumnItems() {
