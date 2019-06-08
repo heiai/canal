@@ -2,7 +2,11 @@ package com.alibaba.otter.canal.adapter.launcher.loader;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -126,7 +130,11 @@ public class CanalAdapterLoader {
                         canalOuterAdapterGroups,
                         canalClientConfig.getAccessKey(),
                         canalClientConfig.getSecretKey(),
-                        canalClientConfig.getFlatMessage());
+                        canalClientConfig.getFlatMessage(),
+                        canalClientConfig.isEnableMessageTrace(),
+                        canalClientConfig.getCustomizedTraceTopic(),
+                        canalClientConfig.getAccessChannel(),
+                        canalClientConfig.getNamespace());
                     canalMQWorker.put(canalAdapter.getInstance() + "-rocketmq-" + group.getGroupId(), rocketMQWorker);
                     rocketMQWorker.start();
 

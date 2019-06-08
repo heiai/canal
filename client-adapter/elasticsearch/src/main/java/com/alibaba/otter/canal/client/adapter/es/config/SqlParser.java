@@ -10,7 +10,11 @@ import java.util.stream.Collectors;
 import com.alibaba.fastsql.sql.SQLUtils;
 import com.alibaba.fastsql.sql.ast.SQLExpr;
 import com.alibaba.fastsql.sql.ast.expr.*;
-import com.alibaba.fastsql.sql.ast.statement.*;
+import com.alibaba.fastsql.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.fastsql.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.fastsql.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.fastsql.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.fastsql.sql.ast.statement.SQLTableSource;
 import com.alibaba.fastsql.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.fastsql.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.fastsql.sql.parser.ParserException;
@@ -122,6 +126,23 @@ public class SqlParser {
             SQLCaseExpr sqlCaseExpr = (SQLCaseExpr) expr;
             fieldItem.setMethod(true);
             sqlCaseExpr.getItems().forEach(item-> visitColumn(item.getConditionExpr(), fieldItem));
+        }else if(expr instanceof SQLCharExpr) {
+            SQLCharExpr sqlCharExpr = (SQLCharExpr) expr;
+            String owner = null;
+            String columnName = null;
+            if (sqlCharExpr.getParent() instanceof SQLCaseExpr.Item) {
+                owner = ((SQLPropertyExpr) ((SQLCaseExpr.Item) sqlCharExpr.getParent()).getValueExpr()).getOwnernName();
+                columnName = ((SQLPropertyExpr) ((SQLCaseExpr.Item) sqlCharExpr.getParent()).getValueExpr()).getName();
+            }
+            if (fieldItem.getFieldName() == null) {
+                fieldItem.setFieldName(columnName);
+                fieldItem.setExpr(sqlCharExpr.toString());
+            }
+            ColumnItem columnItem = new ColumnItem();
+            columnItem.setColumnName(columnName);
+            columnItem.setOwner(owner);
+            fieldItem.getOwners().add(owner);
+            fieldItem.addColumn(columnItem);
         }
     }
 
